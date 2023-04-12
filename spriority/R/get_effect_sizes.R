@@ -1,4 +1,5 @@
 library(tidyverse)
+library(metafor)
 
 options(dplyr.summarise.inform = FALSE)
 
@@ -10,12 +11,6 @@ data <- read.csv("~/Postdoc/sPRIORITY/Meta-analysis/sPriority_database_230411_BD
 
 #Paper --> Environment --> Sequence --> Time point --> Species
 
-#########################################
-#Create function for back-transformation
-#########################################
-
-back_transform<-function(x){}
-
 #####################################
 #Create function to get effect sizes
 #####################################
@@ -25,107 +20,306 @@ back_transform<-function(x){}
 data<-data%>%
   filter(Number_of_species_in_sequence==2)
 
-#Standardise time units
-
-data1<-standardise_time_units(data, time="Days")
-
 #Code function to get effect sizes
 
-get_effect_sizes<-function(data, time_unit=NULL){
+get_effect_sizes<-function(data,
+                           time_unit=NULL,
+                           scenario=2,
+                           measure="SMD"){
 
-  #data is the data sheet with raw data from sPriority database
+  #data is a dataframe with the raw data from the sPriority database
+
   #If not NULL, time_unit can be either "Hours", "Days", "Weeks", "Months" or "Years"
+  #Set time_unit=NULL if time units do not have to be standardised across studies
 
-  #Standardise time units
+  #There are two possible scenarios to calculate an effect size
+  # Scenario 1: keep the time lag between the arrival of the target species or species group and the measurement constant
+  # Scenario 2: keep the time lag between the start of the experiment and the measurement (time_since_start) constant
+
+  #measure is a character string to specify which effect size should be calculated (see metafor::escalc).
+  #measure can be:
+  #"MD": raw mean difference
+  #"SMD" (default), standardised mean difference (Hedges' g)
+  #"SMDH": standardised mean difference with heteroscedastic population variances in the two groups
+  #"SMD1": standardised mean difference where the mean difference is divided by the standard deviation of the second group
+  #"SMD1H": same as SMD1, but with heteroscedastic population variances
+  #"ROM": log transformed ratio of means
+
+  #Error interceptions
+
+  if (is.null(time_unit)==FALSE) {
+
+    if (time_unit=="Hours"|time_unit=="Days"|time_unit=="Weeks"|time_unit=="Months"|time_unit=="Years") {}
+    else {stop("time_unit must be Hours, Days, Weeks, Months, or Years")}
+
+  }
+
+  if (scenario==1|scenario==2) {} else {stop("scenario must be 1 or 2")}
+
+  if (measure=="MD"|measure=="SMD"|measure=="SMDH"|measure=="SMD1"|measure=="SMD1H"|measure=="ROM") {}
+  else {stop("measure must be MD, SMD, SMDH, SMD1, SMD1H, ROM. See metafor::escalc for more information.")}
+
+  #Standardise time units if time_unit is not NULL
 
   if (is.null(time_unit)==FALSE) {data<-standardise_time_units(data, time=time_unit)}
 
   #Create list to store effect sizes
 
-  results<-list()
+  results<-vector("list", nrow(data)) #Pre-allocate an empty list to store results
 
-  data$Hedge_d_reverse<-NA
-  data$Hedge_d_sync<-NA
+  #Loop over data
 
-  for (i in 1:nrow(data)){ #For each observation in data, calculate an effect size
+  for (i in 1:nrow(data)){ #For each observation in data
 
-    paper<-data$Paper_ID[i] #Get paper ID
-    envir<-data$Environment_ID[i] #Get environment ID
-    seq<-data$Sequence_ID[i] #Get sequence ID
-    time<-data$Time_after_start[i] #Get time point
-    sp<-data$Species_name[i] #Get species name
+    if (data$Number_of_introduction_events[i] != 1 & data$Position_in_sequence[i] != 1){
 
-    #Reconstruct all arrival sequences for the paper
+      #If this is not a synchronous arrival sequence AND the species is not among the first to arrive,
+      #then do the following:
 
-    arrival_seq<-data %>%
-      filter(Paper_ID==paper & Environment_ID==envir & Time_after_start==time)%>%
-      group_by(Sequence_ID, Position_in_sequence, Time_since_first_intro)%>%
-      summarise(Species_name=Species_name)
+      #Create list to store results
 
-    #Is there any synchronous reference scenario in this study?
+      es_list<-list(row_target=i,
+                    row_control_reverse=NULL,
+                    row_control_sync=NULL,
+                    es_reverse=data[i,],
+                    es_sync=data[i,])
 
-    sequence_ID_ref<-unique(data$Sequence_ID[which(data$Paper_ID==paper &
-                                              data$Environment_ID==envir &
-                                              data$Number_of_introduction_events==1)])
+      #Get infos about observation
 
-    if (seq %in% sequence_ID_ref){
-      #If response variable measured in a synchronous scenario, keep NA value for effect size
-    }
+      paper<-data$Paper_ID[i] #Get paper ID
+      envir<-data$Environment_ID[i] #Get environment ID
+      seq<-data$Sequence_ID[i] #Get sequence ID
+      time<-data$Time_after_start[i] #Get time point
+      sp<-data$Species_name[i] #Get species name
 
-    else {
+      #Get species list for inoculation sequence
 
-      if (length(sequence_ID_ref)==0){
-      #If there is no synchronous scenario
-      #Calculate effect size only based on reverse scenario
+      sp_in_sequence<-sort(unique(data$Species_name[data$Paper_ID==paper &
+                                                      data$Sequence_ID==seq &
+                                                      data$Environment_ID==envir]))
+
+      #Find the right reference situation
+
+      if (scenario==1){
+
+        #Scenario 1: keep the time lag between the arrival of the target species or species group
+        #and the measurement constant
+
+        #######################
+        #Find reverse scenario
+        #######################
+
+        index_reverse<-which(data$Paper_ID==paper &
+                               data$Environment_ID==envir &
+                               data$Time_after_start==time-data$Time_since_first_intro[i] &
+                               data$Species_name==sp &
+                               data$Number_of_introduction_events != 1 & #Multiple introduction events
+                               data$Position_in_sequence == 1) #Species must arrive in position 1
+
+        if (length(index_reverse)>0) {
+
+          #Check species composition (2 arrival scenarios must involve the same species)
+
+          for (j in index_reverse){
+
+            sp_in_reverse_sequence<-sort(unique(data$Species_name[data$Paper_ID==paper &
+                                                                    data$Sequence_ID==data$Sequence_ID[j] &
+                                                                    data$Environment_ID==envir])) #Get species list for reverse sequence
+
+            if (identical(sp_in_sequence, sp_in_reverse_sequence)) {
+
+              es_list$row_control_reverse<-j #Store row index in list if there is a match
+              break #Exit loop
+
+            }}}
+
+        if (is.null(es_list$row_control_reverse)) {index_reverse<-NULL} else {index_reverse<-es_list$row_control_reverse}
+
+        ###########################
+        #Find synchronous scenario
+        ###########################
+
+        index_sync<-which(data$Paper_ID==paper &
+                            data$Environment_ID==envir &
+                            data$Time_after_start==time-data$Time_since_first_intro[i] &
+                            data$Species_name==sp &
+                            data$Number_of_introduction_events == 1 & #Only one introduction event
+                            data$Position_in_sequence == 1) #Species must arrive in position 1
+
+        if (length(index_sync)>0) {
+
+          #Check species composition (2 arrival scenarios must involve the same species)
+
+          for (j in index_sync){
+
+            sp_in_sync_sequence<-sort(unique(data$Species_name[data$Paper_ID==paper &
+                                                                 data$Sequence_ID==data$Sequence_ID[j] &
+                                                                 data$Environment_ID==envir])) #Get species list for synchronous sequence
+
+            if (identical(sp_in_sequence, sp_in_sync_sequence)) {
+
+              es_list$row_control_sync<-j #Store row index in list if there is a match
+              break #Exit loop
+
+            }}}
+
+        if (is.null(es_list$row_control_sync)) {index_sync<-NULL} else {index_sync<-es_list$row_control_sync}
+
+        ##############################################
+        #Calculate effect sizes using metafor package
+        ##############################################
+
+        if (is.null(index_reverse)==FALSE){
+
+          #Calculate effect size using the reverse scenario
+
+          es_list$es_reverse<-cbind(es_list$es_reverse,
+                                    escalc(measure=measure,
+                                           m1i=data$Avg_value_original[i],
+                                           sd1i=data$SD_value[i],
+                                           n1i=data$n_value[i],
+                                           m2i=data$Avg_value_original[index_reverse],
+                                           sd2i=data$SD_value[index_reverse],
+                                           n2i=data$n_value[index_reverse]))
         }
 
-      if (length(sequence_ID_ref)==1){ #There is one synchronous sequence of arrival
+        else {es_list$es_reverse<-NULL}
 
-        #Calculate effect size based on synchronous sequence of arrival (only one synchronous sequence available)
+        if (is.null(index_sync)==FALSE) {
 
-        avgT<-data$Avg_value_original[i] #Average value of treatment group
-        sdT<-data$SD_value[i] #Standard deviation of treatment group
-        nT<-data$n_value[i] #Sample size of treatment group
+          #Calculate effect size using the synchronous scenario
 
-        index<-which(data$Paper_ID==paper &
-                       data$Environment_ID==envir &
-                       data$Sequence_ID==sequence_ID_ref &
-                       data$Time_after_start==time &
-                       data$Species_name==sp) #Find line number for reference scenario
+          es_list$es_sync<-cbind(es_list$es_sync,
+                                 escalc(measure=measure,
+                                        m1i=data$Avg_value_original[i],
+                                        sd1i=data$SD_value[i],
+                                        n1i=data$n_value[i],
+                                        m2i=data$Avg_value_original[index_sync],
+                                        sd2i=data$SD_value[index_sync],
+                                        n2i=data$n_value[index_sync]))
+        }
 
-        avgC<-data$Avg_value_original[index] #Average value of control group
-        sdC<-data$SD_value[index] #Standard deviation of control group
-        nC<-data$n_value[index] #Sample size of control group
-
-        s<-sqrt(((nT-1)*sdT^2+(nC-1)*sdC^2)/(nT+nC-2))
-
-        J<-1-(3/(4*(nT+nC)-9))
-
-        data$Hedge_d_sync[i]<-J*(avgT-avgC)/s
+        else {es_list$es_sync<-NULL}
 
       }
 
-      if (length(sequence_ID_ref)>1){ #If there is more than one synchronous scenario, choose right one for comparison
+      if (scenario==2){
 
-        #Number of arrival events before the arrival of the target species
+        #Scenario 2: keep the time lag between the start of the experiment
+        #and the measurement (time_since_start) constant
 
-        n_prec<-data$Position_in_sequence[i]-1
+        #######################
+        #Find reverse scenario
+        #######################
 
-        #Find Sequence_ID for the right synchronous scenario
+        index_reverse<-which(data$Paper_ID==paper &
+                               data$Environment_ID==envir &
+                               data$Time_after_start==time & #Constant in scenario 2
+                               data$Species_name==sp &
+                               data$Number_of_introduction_events != 1 & #Multiple introduction events
+                               data$Position_in_sequence == 1) #Species must arrive in position 1
+
+        if (length(index_reverse)>0) {
+
+          #Check species composition (2 arrival scenarios must involve the same species)
+
+          for (j in index_reverse){
+
+            sp_in_reverse_sequence<-sort(unique(data$Species_name[data$Paper_ID==paper &
+                                                                    data$Sequence_ID==data$Sequence_ID[j] &
+                                                                    data$Environment_ID==envir])) #Get species list for reverse sequence
+
+            if (identical(sp_in_sequence, sp_in_reverse_sequence)) {
+
+              es_list$row_control_reverse<-j #Store row index in list if there is a match
+              break #Exit loop
+
+            }}}
+
+        if (is.null(es_list$row_control_reverse)) {index_reverse<-NULL} else {index_reverse<-es_list$row_control_reverse}
+
+        ###########################
+        #Find synchronous scenario
+        ###########################
+
+        index_sync<-which(data$Paper_ID==paper &
+                               data$Environment_ID==envir &
+                               data$Time_after_start==time & #Constant in scenario 2
+                               data$Species_name==sp &
+                               data$Number_of_introduction_events == 1 & #Only one introduction event
+                               data$Position_in_sequence == 1) #Species must arrive in position 1
+
+        if (length(index_sync)>0) {
+
+          #Check species composition (2 arrival scenarios must involve the same species)
+
+          for (j in index_sync){
+
+            sp_in_sync_sequence<-sort(unique(data$Species_name[data$Paper_ID==paper &
+                                                                    data$Sequence_ID==data$Sequence_ID[j] &
+                                                                    data$Environment_ID==envir])) #Get species list for synchronous sequence
+
+            if (identical(sp_in_sequence, sp_in_sync_sequence)) {
+
+              es_list$row_control_sync<-j #Store row index in list if there is a match
+              break #Exit loop
+
+            }}}
+
+        if (is.null(es_list$row_control_sync)) {index_sync<-NULL} else {index_sync<-es_list$row_control_sync}
+
+        ##############################################
+        #Calculate effect sizes using metafor package
+        ##############################################
+
+        if (is.null(index_reverse)==FALSE){
+
+          #Calculate effect size using the reverse scenario
+
+          es_list$es_reverse<-cbind(es_list$es_reverse,
+                                    escalc(measure=measure,
+                                           m1i=data$Avg_value_original[i],
+                                           sd1i=data$SD_value[i],
+                                           n1i=data$n_value[i],
+                                           m2i=data$Avg_value_original[index_reverse],
+                                           sd2i=data$SD_value[index_reverse],
+                                           n2i=data$n_value[index_reverse]))
+        }
+
+        else {es_list$es_reverse<-NULL}
+
+        if (is.null(index_sync)==FALSE) {
+
+          #Calculate effect size using the synchronous scenario
+
+          es_list$es_sync<-cbind(es_list$es_sync,
+                                  escalc(measure=measure,
+                                         m1i=data$Avg_value_original[i],
+                                         sd1i=data$SD_value[i],
+                                         n1i=data$n_value[i],
+                                         m2i=data$Avg_value_original[index_sync],
+                                         sd2i=data$SD_value[index_sync],
+                                         n2i=data$n_value[index_sync]))
+        }
+
+        else {es_list$es_sync<-NULL}
 
       }
+
+      results[[i]]<-es_list
 
     }
-
-
-
-
-
 
   }
 
-return(data)
+return(results)
 
 }
 
-data1<-get_effect_sizes(data=data)
+#Test function
+test<-get_effect_sizes(data=data,
+                       time_unit="Days",
+                       scenario=1,
+                       measure="SMD")
+
+table<-es_table(test)

@@ -3,7 +3,7 @@
     "path": "~/GitHub/spriority/spriority/R/get_effect_sizes.R",
     "project_path": "R/get_effect_sizes.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "1015520376",
     "contents": "",
     "dirty": false,
     "created": 1681221270747.0,
@@ -12,15 +12,16 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "29,48",
-        "scrollLine": "4"
+        "cursorPosition": "325,0",
+        "scrollLine": "298",
+        "ignored_words": "Standardise\n"
     },
     "folds": "",
-    "lastKnownWriteTime": 1681229665,
+    "lastKnownWriteTime": 1681320486,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1681229665496,
+    "last_content_update": 1681320486482,
     "read_only": false,
     "read_only_alternatives": []
 }
