@@ -34,7 +34,7 @@ get_effect_sizes<-function(data,
 
   #There are two possible scenarios to calculate an effect size
   # Scenario 1: keep the time lag between the arrival of the target species or species group and the measurement constant
-  # Scenario 2: keep the time lag between the start of the experiment and the measurement (time_since_start) constant
+  # Scenario 2: keep the time lag between the start of the experiment and the measurement (time_after_start) constant
 
   #measure is a character string to specify which effect size should be calculated (see metafor::escalc).
   #measure can be:
