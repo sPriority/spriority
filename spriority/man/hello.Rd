@@ -1,8 +1,8 @@
-\name{hello}
-\alias{hello}
-\title{Hello, World!}
+\name{get_effect_sizes}
+\alias{get_effect_sizes}
+\title{Calculate effect sizes}
 \usage{
-hello()
+get_effect_sizes()
 }
 \description{
 Prints 'Hello, world!'.

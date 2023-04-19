@@ -25,7 +25,8 @@ data<-data%>%
 get_effect_sizes<-function(data,
                            time_unit=NULL,
                            scenario=2,
-                           measure="SMD"){
+                           measure="SMD",
+                           report=TRUE){
 
   #data is a dataframe with the raw data from the sPriority database
 
@@ -45,6 +46,8 @@ get_effect_sizes<-function(data,
   #"SMD1H": same as SMD1, but with heteroscedastic population variances
   #"ROM": log transformed ratio of means
 
+  #If report is TRUE, a detailed report is exported as a text file.
+
   #Error interceptions
 
   if (is.null(time_unit)==FALSE) {
@@ -59,6 +62,8 @@ get_effect_sizes<-function(data,
   if (measure=="MD"|measure=="SMD"|measure=="SMDH"|measure=="SMD1"|measure=="SMD1H"|measure=="ROM") {}
   else {stop("measure must be MD, SMD, SMDH, SMD1, SMD1H, ROM. See metafor::escalc for more information.")}
 
+  if (is.logical(report)==FALSE){stop("report must be TRUE or FALSE")}
+
   #Standardise time units if time_unit is not NULL
 
   if (is.null(time_unit)==FALSE) {data<-standardise_time_units(data, time=time_unit)}
@@ -67,13 +72,54 @@ get_effect_sizes<-function(data,
 
   results<-vector("list", nrow(data)) #Pre-allocate an empty list to store results
 
+  #Create text file
+
+  if (report==TRUE){
+
+    file_name<-paste("report", format(Sys.time(),'_%Y%m%d_%H%M%S'), ".txt", sep="")
+
+    write.table(paste("Analysis report - ", Sys.time(), sep=""),
+                file=file_name,
+                row.names = FALSE,
+                col.names = FALSE,
+                quote=FALSE)
+
+    write("-------------------------------------",
+          file=file_name,
+          append=TRUE)
+
+    write(" ",
+          file=file_name,
+          append=TRUE)
+
+    write(paste("Scenario ", scenario, "\n ", sep=""),
+          file=file_name,
+          append=TRUE)
+    }
+
   #Loop over data
 
   for (i in 1:nrow(data)){ #For each observation in data
 
-    if (data$Number_of_introduction_events[i] != 1 & data$Position_in_sequence[i] != 1){
+    if (data$Number_of_introduction_events[i] == 1 | data$Position_in_sequence[i] == 1){
 
-      #If this is not a synchronous arrival sequence AND the species is not among the first to arrive,
+      if (report==TRUE){
+
+        if (data$Number_of_introduction_events[i] == 1) {
+
+          write(paste("Row ", i, ": this is a synchronous scenario. No effect size calculated.", sep=""),
+                file=file_name,
+                append=TRUE)}
+
+        if (data$Position_in_sequence[i] == 1) {
+
+          write(paste("Row ", i, ": the species or species group arrives first. No effect size calculated.", sep=""),
+                file=file_name,
+                append=TRUE)}}}
+
+    else {
+
+      #If this is not a synchronous arrival sequence OR the species is not among the first to arrive,
       #then do the following:
 
       #Create list to store results
@@ -133,7 +179,20 @@ get_effect_sizes<-function(data,
 
             }}}
 
-        if (is.null(es_list$row_control_reverse)) {index_reverse<-NULL} else {index_reverse<-es_list$row_control_reverse}
+        if (is.null(es_list$row_control_reverse)) {
+
+          index_reverse<-NULL
+          if (report==TRUE) {write(paste("Row ", i, ": no reverse scenario found", sep=""),
+                                   file=file_name,
+                                   append=TRUE)}}
+
+          else {
+
+            index_reverse<-es_list$row_control_reverse
+            if (report==TRUE) {write(paste("Row ", i, ": reverse scenario found on line ", index_reverse, sep=""),
+                                     file=file_name,
+                                     append=TRUE)}
+            }
 
         ###########################
         #Find synchronous scenario
@@ -163,7 +222,19 @@ get_effect_sizes<-function(data,
 
             }}}
 
-        if (is.null(es_list$row_control_sync)) {index_sync<-NULL} else {index_sync<-es_list$row_control_sync}
+        if (is.null(es_list$row_control_sync)) {
+
+          index_sync<-NULL
+          if (report==TRUE){write(paste("Row ", i, ": no synchronous scenario found", sep=""),
+                                  file=file_name,
+                                  append=TRUE)}}
+
+          else {
+
+            index_sync<-es_list$row_control_sync
+            if (report==TRUE){write(paste("Row ", i, ": synchronous scenario found on line ", index_sync, sep=""),
+                                    file=file_name,
+                                    append=TRUE)}}
 
         ##############################################
         #Calculate effect sizes using metafor package
@@ -236,7 +307,19 @@ get_effect_sizes<-function(data,
 
             }}}
 
-        if (is.null(es_list$row_control_reverse)) {index_reverse<-NULL} else {index_reverse<-es_list$row_control_reverse}
+        if (is.null(es_list$row_control_reverse)) {
+
+          index_reverse<-NULL
+          if (report==TRUE) {write(paste("Row ", i, ": no reverse scenario found", sep=""),
+                                   file=file_name,
+                                   append=TRUE)}}
+
+          else {
+
+            index_reverse<-es_list$row_control_reverse
+            if (report==TRUE) {write(paste("Row ", i, ": reverse scenario found on line ", index_reverse, sep=""),
+                                     file=file_name,
+                                     append=TRUE)}}
 
         ###########################
         #Find synchronous scenario
@@ -266,7 +349,19 @@ get_effect_sizes<-function(data,
 
             }}}
 
-        if (is.null(es_list$row_control_sync)) {index_sync<-NULL} else {index_sync<-es_list$row_control_sync}
+        if (is.null(es_list$row_control_sync)) {
+
+          index_sync<-NULL
+          if (report==TRUE) {write(paste("Row ", i, ": no synchronous scenario found", sep=""),
+                                           file=file_name,
+                                           append=TRUE)}}
+
+        else {
+
+          index_sync<-es_list$row_control_sync
+          if (report==TRUE) {write(paste("Row ", i, ": synchronous scenario found on line ", index_sync, sep=""),
+                                   file=file_name,
+                                   append=TRUE)}}
 
         ##############################################
         #Calculate effect sizes using metafor package
@@ -319,7 +414,8 @@ return(results)
 #Test function
 test<-get_effect_sizes(data=data,
                        time_unit="Days",
-                       scenario=1,
-                       measure="SMD")
+                       scenario=2,
+                       measure="SMD",
+                       report=TRUE)
 
 table<-es_table(test)
