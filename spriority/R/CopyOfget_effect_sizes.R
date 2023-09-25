@@ -17,7 +17,7 @@ data <- read.csv("~/Postdoc/sPRIORITY/Meta-analysis/sPriority_database_230411_BD
 
 #Start simple by only considering scenarios with only two species interacting (A then B, B then A, simultaneous AB)
 
-data<-data%>%
+data<-data %>%
   filter(Number_of_species_in_sequence==2)
 
 #Code function to get effect sizes
@@ -130,6 +130,11 @@ get_effect_sizes<-function(data,
                     es_reverse=data[i,],
                     es_sync=data[i,])
 
+      #Number of effect sizes to calculate
+      #n>1 for non synchronous scenarios
+
+      n <- data$Position_in_sequence[i]-1
+
       #Get infos about observation
 
       paper<-data$Paper_ID[i] #Get paper ID
@@ -137,12 +142,36 @@ get_effect_sizes<-function(data,
       seq<-data$Sequence_ID[i] #Get sequence ID
       time<-data$Time_after_start[i] #Get time point
       sp<-data$Species_name[i] #Get species name
+      pos<-data$Position_in_sequence[i] #Get position in sequence
 
-      #Get species list for inoculation sequence
+      #Get species list for inoculation sequence in environment
 
-      sp_in_sequence<-sort(unique(data$Species_name[data$Paper_ID==paper &
-                                                      data$Sequence_ID==seq &
-                                                      data$Environment_ID==envir]))
+      sp_list<-data %>%
+        filter(Paper_ID==paper & Sequence_ID==seq & Environment_ID==envir) %>%
+        select(Position_in_sequence, Species_name, Time_since_first_intro) %>%
+        arrange(Position_in_sequence, Species_name, Time_since_first_intro) %>%
+        distinct(Position_in_sequence, Species_name, Time_since_first_intro)
+
+      #Check that the number of species in the sequence is equal to Number_of_species_in_sequence
+      #If not, stop code and display informative error message
+      #Only check if data recorded at the species level (not species group level)
+
+      if (data$Ecological_level[i] == "Species"){
+
+          if (nrow(sp_list) != data$Number_of_species_in_sequence[i]){
+
+            stop(paste("Row ",
+                       i,
+                       ": the number of species in the sequence is ",
+                       nrow(sp_list),
+                       ", but Number_of_species_in_sequence is ",
+                       data$Number_of_species_in_sequence[i],
+                       sep=""))}}
+
+      #Sort species/groups in sequence alphabetically
+      #Just to check that species/group IDs are the same in different arrival scenarios
+
+      sp_in_sequence<-sort(unique(sp_list$Species_name))
 
       #Find the right reference situation
 
@@ -151,48 +180,74 @@ get_effect_sizes<-function(data,
         #Scenario 1: keep the time lag between the arrival of the target species or species group
         #and the measurement constant
 
-        #######################
-        #Find reverse scenario
-        #######################
+        for (k in 1:n) {
 
-        index_reverse<-which(data$Paper_ID==paper &
-                               data$Environment_ID==envir &
-                               data$Time_after_start==time-data$Time_since_first_intro[i] &
-                               data$Species_name==sp &
-                               data$Number_of_introduction_events != 1 & #Multiple introduction events
-                               data$Position_in_sequence == 1) #Species must arrive in position 1
+          #There are n effect sizes to calculate
+          #We want to calculate the effect of species in position k on our target species
+          #Typically, n=1 for arrival scenarios with only 2 species (2 introduction events)
+          #n>1 for arrival scenarios with more than 2 introduction events
 
-        if (length(index_reverse)>0) {
+          #######################
+          #Find reverse scenario
+          #######################
 
-          #Check species composition (2 arrival scenarios must involve the same species)
+          #Find the sequence ID of the right reverse scenario
+          #sp_list_rev is the reverse arrival scenario to look for (same species, same time intervals, different order)
 
-          for (j in index_reverse){
+          reverse<-find_reverse_scenario(data=data,
+                                          sp_list=sp_list,
+                                          pos_target=pos,
+                                          pos_rev=k,
+                                          paper=paper,
+                                          envir=envir)
 
-            sp_in_reverse_sequence<-sort(unique(data$Species_name[data$Paper_ID==paper &
-                                                                    data$Sequence_ID==data$Sequence_ID[j] &
-                                                                    data$Environment_ID==envir])) #Get species list for reverse sequence
 
-            if (identical(sp_in_sequence, sp_in_reverse_sequence)) {
+          if (is.null(reverse$seq_rev)==TRUE) {
 
-              es_list$row_control_reverse<-j #Store row index in list if there is a match
-              break #Exit loop
+            #Then there is no reverse scenario available. We can't calculate an effect size.
 
-            }}}
+          } else {
 
-        if (is.null(es_list$row_control_reverse)) {
+            #There is a reverse scenario available
+            #We can try to calculate an effect size
 
-          index_reverse<-NULL
-          if (report==TRUE) {write(paste("Row ", i, ": no reverse scenario found", sep=""),
-                                   file=file_name,
-                                   append=TRUE)}}
+            index_reverse<-which(data$Paper_ID==paper &
+                                   data$Environment_ID==envir &
+                                   data$Sequence_ID==reverse$seq_rev &
+                                   data$Time_after_start==time-data$Time_since_first_intro[i] &
+                                   data$Species_name==sp &
+                                   data$Number_of_introduction_events != 1) #Multiple introduction events
 
-          else {
+            if (length(index_reverse)>0){
 
-            index_reverse<-es_list$row_control_reverse
-            if (report==TRUE) {write(paste("Row ", i, ": reverse scenario found on line ", index_reverse, sep=""),
-                                     file=file_name,
-                                     append=TRUE)}
+              #Check that the kth species in target sequence is already present in the reverse sequence at the time of measurement
+
+              if (data$Time_after_start[index_reverse] <= unique(reverse$sp_list_rev$Time_since_first_intro[reverse$sp_list_rev$Position_in_sequence==pos])) {
+
+                es_list$row_control_reverse<-NULL}
+
+              else {es_list$row_control_reverse<-index_reverse}}
+
+            #Write in report
+
+            if (is.null(es_list$row_control_reverse)) {
+
+              index_reverse<-NULL
+              if (report==TRUE) {write(paste("Row ", i, ": no reverse scenario found", sep=""),
+                                       file=file_name,
+                                       append=TRUE)}}
+
+            else {
+
+              index_reverse<-es_list$row_control_reverse
+              if (report==TRUE) {write(paste("Row ", i, ": reverse scenario found on line ", index_reverse, sep=""),
+                                       file=file_name,
+                                       append=TRUE)}
             }
+
+          }
+
+        }
 
         ###########################
         #Find synchronous scenario
