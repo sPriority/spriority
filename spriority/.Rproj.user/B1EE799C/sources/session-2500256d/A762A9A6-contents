@@ -1,0 +1,67 @@
+  for (k in 1:n) {
+    
+    #There are n effect sizes to calculate, n being the number of introduction events before the arrival of the target species
+    #We want to calculate the effect of species in position k on our target species
+    #Typically, n=1 for arrival scenarios with only 2 species (2 introduction events)
+    #n>1 for arrival scenarios with more than 2 introduction events
+    
+    sp_prior<-sp_list$Species_name[k] #Get the name of the species for which we want to calculate the priority effect on our target species
+    
+    ###########################
+    #Find synchronous scenario
+    ###########################
+    
+    #Find the sequence ID of the right synchronous scenario
+    #sp_list_sync is the synchronous arrival scenario to look for (same species, all species arrive at the same time)
+    
+    synchronous<-find_sync_scenario(data=data,
+                                    sp_list=sp_list,
+                                    paper=paper,
+                                    envir=envir)
+    
+    if (is.null(synchronous$seq_sync)==TRUE) {
+      
+      #Then there is no synchronous scenario available. We can't calculate an effect size.
+      #Do nothing
+      
+    } else {
+      
+      #There is a synchronous scenario available
+      #We can try to calculate an effect size
+      
+      index_synchronous<-which(data$Paper_ID==paper &
+                               data$Environment_ID==envir &
+                               data$Sequence_ID==synchronous$seq_sync &
+                               data$Time_after_start==time-data$Time_since_first_intro[i] &
+                               data$Species_name==sp &
+                               data$Number_of_introduction_events == 1, #Synchronous arrival
+                               data$Position_in_sequence == 1) #Synchronous arrival
+      
+      if (length(index_synchronous)>0){
+          
+          es_list$Sync$row_target<-append(es_list$Sync$row_target, i)
+          es_list$Sync$sp_target<-append(es_list$Sync$sp_target, sp)
+          es_list$Sync$sp_prior<-append(es_list$Sync$sp_prior, sp_prior)
+          es_list$Sync$row_control_sync<-append(es_list$Sync$row_control_sync, index_synchronous)
+          es_list$Sync$es_sync<-rbind(es_list$Sync$es_sync, data[i,])}
+      
+      #Write in report
+      
+      if (is.null(es_list$Sync$row_control_sync)) {
+        
+        index_synchronous<-NULL
+        if (report==TRUE) {write(paste("Row ", i, ": no synchronous scenario found", sep=""),
+                                 file=file_name,
+                                 append=TRUE)}}
+      
+      else {
+        
+        index_synchronous<-es_list$Sync$row_control_sync
+        if (report==TRUE) {write(paste("Row ", i, ": synchronous scenario found on line ", index_synchronous, sep=""),
+                                 file=file_name,
+                                 append=TRUE)}
+      }
+      
+    }
+    
+  }

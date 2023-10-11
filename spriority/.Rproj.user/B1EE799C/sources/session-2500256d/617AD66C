@@ -3,7 +3,7 @@
     "path": "~/GitHub/spriority/spriority/man/get_effect_sizes.Rd",
     "project_path": "man/get_effect_sizes.Rd",
     "type": "r_doc",
-    "hash": "549244084",
+    "hash": "0",
     "contents": "",
     "dirty": false,
     "created": 1695367765602.0,
@@ -12,8 +12,8 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "20,38",
-        "scrollLine": "6"
+        "cursorPosition": "22,128",
+        "scrollLine": "10"
     },
     "folds": "",
     "lastKnownWriteTime": 1695374615,
