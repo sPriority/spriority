@@ -1,29 +1,15 @@
-library(tidyverse)
-library(metafor)
+#Load R package
+library(spriority)
 
-options(dplyr.summarise.inform = FALSE)
+#Get spriority data
+data <- read.csv("PATH_TO_SPRORITY_CSV")
 
-data <- read.csv("~/Postdoc/sPRIORITY/Meta-analysis/sPriority_database_230411_BD.csv")[1:855,]
+#Get effect sizes
+es<-get_effect_sizes(data=data,
+                     time_unit="Days", #Standardize time units across dataset
+                     scenario=2, #Scenario to calculate effect sizes (see help page for more infos)
+                     measure="SMD", #standardized mean difference (see help page for more metrics)
+                     report=TRUE) #Export a detailed report
 
-test<-get_effect_sizes(data=data,
-                       time_unit="Days",
-                       scenario=1,
-                       measure="RII1",
-                       report=TRUE)
-
-###############################
-
-test2.smd<-get_effect_sizes(data=data,
-                        time_unit="Days",
-                        scenario=2,
-                        measure="SMD",
-                        report=TRUE)
-
-test2.rii1<-get_effect_sizes(data=data,
-                            time_unit="Days",
-                            scenario=2,
-                            measure="RII1",
-                            report=TRUE)
-
-table2.smd<-es_table(test2.smd)
-table2.rii1<-es_table(test2.rii1)
+#Create effect size table
+table<-es_table(es)
