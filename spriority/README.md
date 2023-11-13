@@ -1,2 +1,2 @@
-## Install spriority R package
+# Install spriority R package
 devtools::install_github("sPriority/spriority/spriority")
