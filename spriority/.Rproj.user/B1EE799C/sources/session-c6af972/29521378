@@ -1,26 +1,26 @@
 {
-    "id": "617AD66C",
+    "id": "29521378",
     "path": "~/GitHub/spriority/spriority/man/get_effect_sizes.Rd",
     "project_path": "man/get_effect_sizes.Rd",
     "type": "r_doc",
-    "hash": "0",
+    "hash": "2904227255",
     "contents": "",
     "dirty": false,
-    "created": 1695367765602.0,
-    "source_on_save": true,
+    "created": 1699870571759.0,
+    "source_on_save": false,
     "relative_order": 2,
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "22,128",
-        "scrollLine": "10"
+        "cursorPosition": "58,27",
+        "scrollLine": "54"
     },
     "folds": "",
-    "lastKnownWriteTime": 1695374615,
+    "lastKnownWriteTime": 1699870684,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1695374615181,
+    "last_content_update": 1699870684330,
     "read_only": false,
     "read_only_alternatives": []
 }

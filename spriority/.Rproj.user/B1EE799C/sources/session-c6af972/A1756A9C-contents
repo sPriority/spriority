@@ -31,7 +31,7 @@ find_reverse_scenario<-function(data,
   for (id in seq_id){ #Loop over all sequence IDs to find the one identical to the target reference scenario
 
     sp_list_id<-data %>%
-      filter(Paper_ID==paper & Sequence_ID==id & Environment_ID==envir) %>%
+      filter(Paper_ID==paper & Sequence_ID==id & Environment_ID==envir & Number_of_introduction_events>1) %>%
       select(Position_in_sequence, Species_name, Time_since_first_intro) %>%
       arrange(Position_in_sequence, Species_name, Time_since_first_intro) %>%
       distinct(Position_in_sequence, Species_name, Time_since_first_intro)
@@ -49,18 +49,22 @@ find_reverse_scenario<-function(data,
 
   #Now check that the target and reverse sequences use the same time intervals
 
-  time_intervals_target <- (sp_list %>%
-                            arrange(Position_in_sequence, Species_name, Time_since_first_intro) %>%
-                            distinct(Position_in_sequence, Time_since_first_intro))$Time_since_first_intro
+  if (is.null(sp_list_id)==FALSE){
 
-  time_intervals_reverse <- (sp_list_id %>%
-                              arrange(Position_in_sequence, Species_name, Time_since_first_intro) %>%
-                              distinct(Position_in_sequence, Time_since_first_intro))$Time_since_first_intro
+      if (nrow(sp_list_id)>1){
 
-  if (identical(time_intervals_target, time_intervals_reverse)==FALSE){
+          time_intervals_target <- (sp_list %>%
+                                    arrange(Position_in_sequence, Species_name, Time_since_first_intro) %>%
+                                    distinct(Position_in_sequence, Time_since_first_intro))$Time_since_first_intro
 
-    sp_list_id<-NULL
-    seq_rev<-NULL}
+          time_intervals_reverse <- (sp_list_id %>%
+                                      arrange(Position_in_sequence, Species_name, Time_since_first_intro) %>%
+                                      distinct(Position_in_sequence, Time_since_first_intro))$Time_since_first_intro
+
+          if (identical(time_intervals_target, time_intervals_reverse)==FALSE){
+
+            sp_list_id<-NULL
+            seq_rev<-NULL}}}
 
   return(list(seq_rev=seq_rev, sp_list_rev=sp_list_id))
 

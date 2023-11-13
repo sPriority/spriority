@@ -24,7 +24,7 @@ find_sync_scenario<-function(data,
   for (id in seq_id){ #Loop over all sequence IDs to find the one identical to the target reference scenario
 
     sp_list_id<-data %>%
-      filter(Paper_ID==paper & Sequence_ID==id & Environment_ID==envir) %>%
+      filter(Paper_ID==paper & Sequence_ID==id & Environment_ID==envir & Number_of_introduction_events==1) %>%
       select(Position_in_sequence, Species_name, Time_since_first_intro) %>%
       arrange(Position_in_sequence, Species_name, Time_since_first_intro) %>%
       distinct(Position_in_sequence, Species_name, Time_since_first_intro)
@@ -42,15 +42,17 @@ find_sync_scenario<-function(data,
 
   #Now check that all species have time_since_first_intro equals to zero
 
-  time_intervals_sync <- (sp_list_id %>%
-                              arrange(Position_in_sequence, Species_name, Time_since_first_intro) %>%
-                              distinct(Position_in_sequence, Time_since_first_intro))$Time_since_first_intro
+  if (is.null(sp_list_id)==FALSE){
 
-  if (length(time_intervals_sync)>1 | time_intervals_sync != 0){
+      time_intervals_sync <- (sp_list_id %>%
+                                  arrange(Position_in_sequence, Species_name, Time_since_first_intro) %>%
+                                  distinct(Position_in_sequence, Time_since_first_intro))$Time_since_first_intro
 
-    sp_list_id<-NULL
-    seq_rev<-NULL}
+      if (length(time_intervals_sync)>1 | time_intervals_sync != 0){
 
-  return(list(seq_sync=seq_rev, sp_list_sync=sp_list_id))
+        sp_list_id<-NULL
+        seq_rev<-NULL}}
+
+  return(list(seq_sync=seq_sync, sp_list_sync=sp_list_id))
 
 }
