@@ -1,0 +1,26 @@
+{
+    "id": "490ED9CE",
+    "path": "~/GitHub/spriority/spriority/R/get_effect_sizes.R",
+    "project_path": "R/get_effect_sizes.R",
+    "type": "r_source",
+    "hash": "2504764722",
+    "contents": "",
+    "dirty": false,
+    "created": 1717915335409.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "573,69",
+        "scrollLine": "535"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1718100092,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1718100092967,
+    "read_only": false,
+    "read_only_alternatives": []
+}
