@@ -1,0 +1,193 @@
+library(tidyverse)
+library(metafor)
+library(readr)
+
+spriority_data <- as.data.frame(read.csv("~/Research/sPriority/Meta-analysis/sPriority_database/sPriority_observations_papers_species_03Oct2024.csv")[,2:66])
+
+# # filter to two species scenarios only
+# spriority_2spseq <- spriority_data[spriority_data$Number_of_species_in_sequence == 2, ]
+#
+# # give the dataframe sequential row numbers to match with reporting
+# rownames(spriority_2spseq) <- seq(from = 1,
+#                                   to = nrow(spriority_2spseq),
+#                                   by = 1)
+
+#Get effect sizes (scenario 1)
+
+for (id in unique(spriority_data$Paper_ID)){
+
+  if (id != 33){
+
+  sub <- spriority_data |>
+    filter(Paper_ID == id)
+
+  es <- get_effect_sizes(data=sub,
+                         time_unit="Days",
+                         scenario=1,
+                         measure="SMD",
+                         report=TRUE)}
+}
+
+#Get effect sizes (scenario 2)
+
+for (id in unique(spriority_data$Paper_ID)){
+
+  if (id != 19){
+
+    sub <- spriority_data |>
+      filter(Paper_ID == id)
+
+    es <- get_effect_sizes(data=sub,
+                           time_unit="Days",
+                           scenario=2,
+                           measure="SMD",
+                           report=TRUE)}
+}
+
+#Debug scenario 1 with paper 33
+
+sub <- spriority_data |>
+  filter(Paper_ID == 33)
+
+es <- get_effect_sizes(data=sub,
+                       time_unit="Days",
+                       scenario=1,
+                       measure="SMD",
+                       report=TRUE)
+
+#Debug scenario 2 with paper 19
+
+sub <- spriority_data |>
+  filter(Paper_ID == 19)
+
+es <- get_effect_sizes(data=sub,
+                       time_unit="Days",
+                       scenario=2,
+                       measure="SMD",
+                       report=TRUE)
+
+#Get effect sizes after removing papers 19 and 33
+
+sub <- spriority_data |>
+  filter(Paper_ID != 19) |>
+  filter(Paper_ID != 33)
+
+es1 <- get_effect_sizes(data=sub,
+                        time_unit="Days",
+                        scenario=1,
+                        measure="SMD",
+                        report=FALSE)
+
+es2 <- get_effect_sizes(data=sub,
+                        time_unit="Days",
+                        scenario=2,
+                        measure="SMD",
+                        report=FALSE)
+
+table_1 <- es_table(es1)
+
+table_2 <- es_table(es2)
+
+papers_1 <- unique(table_1$Paper_ID)
+
+papers_2 <- unique(table_2$Paper_ID)
+
+all_papers <- sort(unique(c(papers_1, papers_2)))
+
+data_no_es <- spriority_data |>
+  filter(!Paper_ID %in% all_papers)
+
+papers_to_check <- (data_no_es |>
+  group_by(Paper_ID) |>
+  summarise(Number_of_species_in_sequence=max(Number_of_species_in_sequence)) |>
+  filter(Number_of_species_in_sequence == 2))$Paper_ID #Only look at 2 species papers for now
+
+#Check problem with paper 5
+#Prob: encoding error in the data. Problem solved by Hannah
+
+sub <- spriority_data |>
+  filter(Paper_ID == 5)
+
+(seq <- reconstruct_sequence(i=2,
+                             data=sub))
+
+#Check problem with paper 6
+#Prob: need to consider situations where two sequences have the same sequence ID (because same arrival order)
+#but two different time lags (e.g., B arrives 7 or 14 days after A)
+
+sub <- spriority_data |>
+  filter(Paper_ID == 6)
+
+(seq <- reconstruct_sequence(i=9,
+                             data=sub))
+
+#Check problem with paper 7
+#Prob: same as paper 6
+
+sub <- spriority_data |>
+  filter(Paper_ID == 7)
+
+(seq <- reconstruct_sequence(i=9,
+                             data=sub))
+
+#Check problem with paper 27
+#Found typo in get_effect_sizes
+
+sub <- spriority_data |>
+  filter(Paper_ID == 27)
+
+(seq <- reconstruct_sequence(i=23,
+                             data=sub))
+
+(seq_rev <- find_reverse_scenario(data=sub,
+                                  sp_list=seq,
+                                  pos_target=2,
+                                  pos_rev=1,
+                                  paper=27,
+                                  envir=1))
+
+es_paper27 <- get_effect_sizes(data=sub,
+                               time_unit="Days",
+                               scenario=2,
+                               measure="SMD",
+                               report=TRUE)
+
+table_paper27 <- es_table(es_paper27)
+
+#Check problem with paper 31
+#Same as paper 6
+
+sub <- spriority_data |>
+  filter(Paper_ID == 31)
+
+(seq <- reconstruct_sequence(i=2,
+                             data=sub))
+
+#Check problem with paper 38
+
+sub <- spriority_data |>
+  filter(Paper_ID == 38)
+
+(seq <- reconstruct_sequence(i=3,
+                             data=sub))
+
+# es_2seq_1 <- get_effect_sizes(data=spriority_2spseq,
+#                               time_unit="Days",
+#                               scenario=1,
+#                               measure="SMD",
+#                               report=TRUE)
+#
+# #Remove paper 59
+#
+# spriority_2spseq_1 <- spriority_2spseq |>
+#   filter(Paper_ID != 59)
+#
+# rownames(spriority_2spseq_1) <- seq(from = 1,
+#                                     to = nrow(spriority_2spseq_1),
+#                                     by = 1)
+#
+# es_2seq_1 <- get_effect_sizes(data=spriority_2spseq_1,
+#                               time_unit="Days",
+#                               scenario=1,
+#                               measure="SMD",
+#                               report=TRUE)

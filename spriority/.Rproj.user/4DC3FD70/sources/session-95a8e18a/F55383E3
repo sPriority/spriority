@@ -1,0 +1,27 @@
+{
+    "id": "F55383E3",
+    "path": "~/GitHub/spriority/spriority/R/reconstruct_sequence.R",
+    "project_path": "R/reconstruct_sequence.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1727899391297.0,
+    "source_on_save": false,
+    "relative_order": 9,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "7,13",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1727899550,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1727899550084,
+    "read_only": false,
+    "read_only_alternatives": []
+}

@@ -94,6 +94,8 @@ get_effect_sizes<-function(data,
 
   for (i in 1:nrow(data)){ #For each observation in data
 
+    #print(i)
+
     if (data$Number_of_introduction_events[i] == 1 | data$Position_in_sequence[i] == 1){
 
       if (report==TRUE){
@@ -245,7 +247,7 @@ get_effect_sizes<-function(data,
               if (report==TRUE) {
 
                 decisions<-append(decisions,
-                                  paste("Row ", i, ": no reverse scenario found", sep=""))
+                                  paste("Row ", i, " - Paper ", paper, ": no reverse scenario found", sep=""))
                 }}
 
             else {
@@ -254,7 +256,7 @@ get_effect_sizes<-function(data,
               if (report==TRUE) {
 
                 decisions<-append(decisions,
-                                  paste("Row ", i, ": reverse scenario found on line ", index_reverse, sep=""))
+                                  paste("Row ", i, " - Paper ", paper, ": reverse scenario found on line ", index_reverse, sep=""))
                 }
             }
 
@@ -320,7 +322,7 @@ get_effect_sizes<-function(data,
               if (report==TRUE) {
 
                 decisions<-append(decisions,
-                                  paste("Row ", i, ": no synchronous scenario found", sep=""))
+                                  paste("Row ", i, " - Paper ", paper, ": no synchronous scenario found", sep=""))
                 }}
 
             else {
@@ -329,7 +331,7 @@ get_effect_sizes<-function(data,
               if (report==TRUE) {
 
                 decisions<-append(decisions,
-                                  paste("Row ", i, ": synchronous scenario found on line ", index_synchronous, sep=""))
+                                  paste("Row ", i, " - Paper ", paper, ": synchronous scenario found on line ", index_synchronous, sep=""))
                 }
             }
 
@@ -417,7 +419,7 @@ get_effect_sizes<-function(data,
 
         }
 
-        else {es_list$Reverse$row_control_reverse<-NULL}
+        else {es_list$Sync$row_control_sync<-NULL}
 
       }
 
@@ -514,7 +516,7 @@ get_effect_sizes<-function(data,
                 if (report==TRUE) {
 
                   decisions<-append(decisions,
-                                    paste("Row ", i, ": no reverse scenario found", sep=""))
+                                    paste("Row ", i, " - Paper ", paper, ": no reverse scenario found", sep=""))
                   }}
 
               else {
@@ -523,7 +525,7 @@ get_effect_sizes<-function(data,
                 if (report==TRUE) {
 
                   decisions<-append(decisions,
-                                    paste("Row ", i, ": reverse scenario found on line ", index_reverse, sep=""))
+                                    paste("Row ", i, " - Paper ", paper, ": reverse scenario found on line ", index_reverse, sep=""))
                  }
               }
 
@@ -589,7 +591,7 @@ get_effect_sizes<-function(data,
               if (report==TRUE) {
 
                 decisions<-append(decisions,
-                                  paste("Row ", i, ": no synchronous scenario found", sep=""))
+                                  paste("Row ", i, " - Paper ", paper, ": no synchronous scenario found", sep=""))
                 }}
 
             else {
@@ -598,7 +600,7 @@ get_effect_sizes<-function(data,
               if (report==TRUE) {
 
                 decisions<-append(decisions,
-                                  paste("Row ", i, ": synchronous scenario found on line ", index_synchronous, sep=""))
+                                  paste("Row ", i, " - Paper ", paper, ": synchronous scenario found on line ", index_synchronous, sep=""))
                 }
             }
 
@@ -683,7 +685,7 @@ get_effect_sizes<-function(data,
 
         }
 
-        else {es_list$Reverse$row_control_reverse<-NULL}
+        else {es_list$Sync$row_control_sync<-NULL}
 
       }
 
@@ -697,9 +699,13 @@ get_effect_sizes<-function(data,
 
 close(pb)
 
-write(decisions,
-      file=file_name,
-      append=TRUE)
+if (report == TRUE){
+
+  write(decisions,
+        file=file_name,
+        append=TRUE)
+
+}
 
 return(results)
 
