@@ -1,0 +1,53 @@
+library(readxl)
+data <- read_excel("Data/POEM2020/Data_Biomass_POEM2020_2020-07.xlsx")
+
+data <- data |> 
+  group_by(Plot, Quadrat) |> 
+  summarise(SDW_g = sum(SDW_g))
+
+data_plot <- data.frame(Plot=unique(data$Plot))
+
+data_plot$avg_yield_2q <- NA
+data_plot$avg_yield_4q <- NA
+
+for (i in 1:nrow(data)){
+  
+  plot <- data$Plot[i]
+
+  sub <- data |> 
+    filter(Plot == plot)
+  
+  set.seed(1234)
+  
+  data_plot$avg_yield_2q[data_plot$Plot==plot] <- sum(sub$SDW_g[sample(1:4, 2, replace=F)])/(2*0.2*0.5)
+  
+  data_plot$avg_yield_4q[data_plot$Plot==plot] <- sum(sub$SDW_g)/(4*0.2*0.5)
+  
+}
+
+data_plot$Error <- 100*(data_plot$avg_yield_2q-data_plot$avg_yield_4q)/data_plot$avg_yield_4q
+
+data_plot |> 
+  ggplot(aes(x=avg_yield_2q,
+             y=avg_yield_4q))+
+  geom_smooth(method="lm")+
+  geom_abline(slope=1,
+              intercept=0,
+              linetype=2)+
+  geom_point(size=2)+
+  theme_bw()+
+  xlab("Shoot productivity (g/m²) - 2 quadrats")+
+  ylab("Shoot productivity (g/m²) - 4 quadrats")+
+  stat_cor(cor.coef.name = "r")+
+  theme(axis.text = element_text(color = "black"),
+        axis.title.x = element_text(margin = margin(t=10)),
+        axis.title.y = element_text(margin = margin(r=10)))+
+  coord_fixed()
+
+ggsave("Figure_biomass_NumberQuadrats.png",
+       dpi=1000,
+       width=12,
+       height=12,
+       units="cm")
+
+

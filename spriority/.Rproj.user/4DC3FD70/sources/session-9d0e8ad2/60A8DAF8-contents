@@ -140,7 +140,6 @@ get_effect_sizes<-function(data,
       paper<-data$Paper_ID[i] #Get paper ID
       envir<-data$Environment_ID[i] #Get environment ID
       seq<-data$Sequence_ID[i] #Get sequence ID
-      seq_original <- data$Sequence_ID_original[i] #Get original sequence ID
       time<-data$Time_after_start[i] #Get time point
       sp<-data$Species_name[i] #Get species name
       pos<-data$Position_in_sequence[i] #Get position in sequence
@@ -151,7 +150,7 @@ get_effect_sizes<-function(data,
       #Get species list for inoculation sequence in environment
 
       sp_list<-data %>%
-        filter(Paper_ID==paper & Sequence_ID==seq & Sequence_ID_original ==seq_original & Environment_ID==envir) %>%
+        filter(Paper_ID==paper & Sequence_ID==seq & Environment_ID==envir) %>%
         select(Position_in_sequence, Species_name, Time_since_first_intro) %>%
         arrange(Position_in_sequence, Species_name, Time_since_first_intro) %>%
         distinct(Position_in_sequence, Species_name, Time_since_first_intro)
@@ -194,20 +193,13 @@ get_effect_sizes<-function(data,
           #Find the sequence ID of the right reverse scenario
           #sp_list_rev is the reverse arrival scenario to look for (same species, same time intervals, different order)
 
-          # reverse<-find_reverse_scenario(data=data,
-          #                                 sp_list=sp_list,
-          #                                 pos_target=pos,
-          #                                 pos_rev=k,
-          #                                 paper=paper,
-          #                                 envir=envir,
-          #                                 sp_prior=sp_prior)
-
           reverse<-find_reverse_scenario(data=data,
-                                         sp_list=sp_list,
-                                         pos_target=pos,
-                                         pos_rev=k,
-                                         paper=paper,
-                                         envir=envir)
+                                          sp_list=sp_list,
+                                          pos_target=pos,
+                                          pos_rev=k,
+                                          paper=paper,
+                                          envir=envir,
+                                          sp_prior=sp_prior)
 
           if (is.null(reverse$seq_rev)==TRUE) {
 
@@ -222,7 +214,6 @@ get_effect_sizes<-function(data,
             index_reverse<-which(data$Paper_ID==paper &
                                    data$Environment_ID==envir &
                                    data$Sequence_ID==reverse$seq_rev &
-                                   data$Sequence_ID_original==reverse$seq_rev_original &
                                    data$Time_after_start==time-data$Time_since_first_intro[i] &
                                    data$Species_name==sp &
                                    data$Number_of_introduction_events != 1 &
@@ -492,7 +483,6 @@ get_effect_sizes<-function(data,
               index_reverse<-which(data$Paper_ID==paper &
                                      data$Environment_ID==envir &
                                      data$Sequence_ID==reverse$seq_rev &
-                                     data$Sequence_ID_original==reverse$seq_rev_original &
                                      data$Time_after_start==time & #Constant in scenario 2
                                      data$Species_name==sp &
                                      data$Number_of_introduction_events != 1 & #Not synchronous arrival

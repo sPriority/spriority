@@ -1,0 +1,157 @@
+library(tidyverse)
+library(viridis)
+library(maps)
+
+#Load environmental data
+
+library(readxl)
+data_env <- read_excel("C:/Users/Delor003/OneDrive - Universiteit Utrecht/Documents/Research/Grant proposals/ERC/ERC consolidator grant/Data_Carly_Stevens/Data_env_Stevens.xlsx")
+
+#Create map of BEGIN network
+
+some.eu.countries <- c(
+  "France", "Norway", "Belgium", "Netherlands", "Germany",
+  "Denmark", "Sweden", "UK", "Ireland")
+
+some.eu.maps <- map_data("world", region = some.eu.countries)
+
+
+ggplot(some.eu.maps, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill="lightgray", colour = "white")+
+  coord_map()+
+  theme_minimal()+
+  scale_y_continuous(limits=c(41,62))+
+  scale_x_continuous(limits=c(-10.5,20))+
+  geom_point(data=data_env,
+             aes(x=Longitude,
+                 y=Latitude,
+                 colour=Total_N_deposition),
+             shape=16,
+             inherit.aes = FALSE)+
+  scale_colour_viridis(name="Nitrogen\ndeposition\n(kg/ha/yr)",
+                       option="C")+
+  xlab("Longitude (°)")+
+  ylab("Latitude (°)")+
+  theme(axis.title.x = element_text(margin=margin(t=10)),
+        axis.title.y = element_text(margin=margin(r=10)))
+
+ggsave("C:/Users/Delor003/OneDrive - Universiteit Utrecht/Documents/Research/Grant proposals/ERC/ERC consolidator grant/Data_Carly_Stevens/Map_Begin.png",
+       dpi=1000)
+
+ggplot(some.eu.maps, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill="lightgray", colour = "white")+
+  coord_map()+
+  theme_minimal()+
+  scale_y_continuous(limits=c(41,62))+
+  scale_x_continuous(limits=c(-10.5,20))+
+  geom_point(data=data_env,
+             aes(x=Longitude,
+                 y=Latitude,
+                 colour=Total_N_deposition),
+             shape=16,
+             inherit.aes = FALSE,
+             size=3)+
+  scale_colour_viridis(name="Nitrogen\ndeposition\n(kg/ha/yr)",
+                       option="C")+
+  xlab("")+
+  ylab("")+
+  theme(axis.title.x = element_text(margin=margin(t=10)),
+        axis.title.y = element_text(margin=margin(r=10)),
+        panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank())
+
+ggsave("C:/Users/Delor003/OneDrive - Universiteit Utrecht/Documents/Research/Grant proposals/ERC/ERC consolidator grant/Data_Carly_Stevens/Map_Begin_simple.png",
+       dpi=1000)
+
+#Do PCA on soil properties
+
+data_soil <- data_env |>
+  select(Topsoil_pH:CNratio) |>
+  select(-c(K, P, S, Subsoil_pH))
+
+pca <- prcomp(x = data_soil)
+
+data_env$PC1 <- pca$x[,1]
+data_env$PC2 <- pca$x[,2]
+
+data_clustering <- as.data.frame(pca$x)
+rownames(data_clustering) <- data_env$Site_ID
+
+clustering <- hclust(dist(data_clustering), method = "ward.D")
+
+data_env$soil_groups <- cutree(clustering, k=3)
+
+#Create graph
+
+ggplot(data_env, aes(x=PC1,
+                     y=PC2,
+                     colour=as.factor(soil_groups)))+
+  geom_point(size=2)+
+  theme_bw()
+
+data_env |>
+  filter(soil_groups == 1) |>
+  ggplot(aes(x=Total_N_deposition,
+             y=Species_richness,
+             colour=Country))+
+  geom_point(size=2)+
+  theme_bw()
+
+#Do a new PCA, but only on sites from group 1
+
+data_env_1 <- data_env |>
+  filter(soil_groups == 1)
+
+data_soil_1 <- data_env |>
+  filter(soil_groups == 1) |>
+  select(Topsoil_pH:CNratio) |>
+  select(-c(K, P, S, Subsoil_pH))
+
+pca <- prcomp(x = data_soil_1)
+
+data_env_1$PC1 <- pca$x[,1]
+data_env_1$PC2 <- pca$x[,2]
+
+# data_clustering <- as.data.frame(pca$x)
+# rownames(data_clustering) <- data_env$Site_ID
+#
+# clustering <- hclust(dist(data_clustering), method = "ward.D")
+#
+# data_env$soil_groups <- cutree(clustering, k=3)
+
+ggplot(data_env_1, aes(x=PC1,
+                       y=PC2,
+                       colour=Country))+
+  geom_point(size=2)+
+  theme_bw()
+
+
+#Map sand fraction
+library(sf)
+library(raster)
+library(mapview)
+
+#Create RasterLayer object
+sand<-raster("C:/Users/Delor003/OneDrive - Universiteit Utrecht/Documents/Research/Grant proposals/ERC/ERC consolidator grant/Topsoil_physical_properties_EU/Sand_EU23/Sand_eu23.tif")
+
+#Convert to data frame
+sand_df <- as.data.frame(sand,
+                         xy = TRUE)
+sand_df <- na.omit(sand_df)
+rownames(sand_df) <- 1:nrow(sand_df)
+
+#Plot raster and location data
+ggplot()+
+  geom_raster(data = sand_df,
+              aes(x = x,
+                  y = y,
+                  fill = Sand_eu23))+
+  #geom_sf(data = locations_sf)+
+  theme_minimal()+
+  scale_fill_gradient2(name = "Sand fraction",
+                       low = "blue",
+                       mid = "white",
+                       high = "red",
+                       midpoint = 50,
+                       na.value = "transparent")
