@@ -6,7 +6,7 @@ es_table<-function(x){
   k_sync<-0
 
   for (i in 1:length(x)){
-
+    
     if (is.null(x[[i]]$Reverse$row_control_reverse)==FALSE){
 
       k_reverse<-k_reverse+1
@@ -47,10 +47,12 @@ es_table<-function(x){
 
   }
 
-  data_reverse$reference_scenario<-"Reverse"
-  data_sync$reference_scenario<-"Synchronous"
+  if (k_reverse > 0) {data_reverse$reference_scenario<-"Reverse"}
+  if (k_sync > 0) {data_sync$reference_scenario<-"Synchronous"}
 
-  data<-rbind(data_reverse, data_sync)
+  if (k_reverse > 0 & k_sync > 0) {data<-rbind(data_reverse, data_sync)}
+  if (k_reverse > 0 & k_sync == 0) {data<-data_reverse}
+  if (k_reverse == 0 & k_sync > 0) {data<-data_sync}
 
   data<-data[order(data$Paper_ID, data$Observation_ID),]
 

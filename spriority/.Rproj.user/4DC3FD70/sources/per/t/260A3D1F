@@ -1,0 +1,26 @@
+{
+    "id": "260A3D1F",
+    "path": "~/GitHub/spriority/spriority/R/find_sync_scenario.R",
+    "project_path": "R/find_sync_scenario.R",
+    "type": "r_source",
+    "hash": "184813302",
+    "contents": "",
+    "dirty": false,
+    "created": 1738012069610.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "20,22",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1707316429,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1707316429,
+    "read_only": false,
+    "read_only_alternatives": []
+}
